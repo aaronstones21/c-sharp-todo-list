@@ -9,13 +9,19 @@
     <None Remove="AWSSDK.DynamoDBv2" />
     <None Remove="AWSSDK.Core" />
     <None Remove="Model\" />
+    <None Remove="SwaggerUi" />
+    <None Remove="Swagger-Net" />
+    <None Remove="Services\" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="AWSSDK.DynamoDBv2" Version="3.7.2.2" />
     <PackageReference Include="AWSSDK.Core" Version="3.7.5.6" />
     <PackageReference Include="AWSSDK.Extensions.NETCore.Setup" Version="3.3.101" />
+    <PackageReference Include="SwaggerUi" Version="1.1.0" />
+    <PackageReference Include="Swagger-Net" Version="8.4.1.201" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Model\" />
+    <Folder Include="Services\" />
   </ItemGroup>
 </Project>

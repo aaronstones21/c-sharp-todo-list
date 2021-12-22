@@ -1,9 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using System.Collections.Generic;
 using ToDoList.Model;
 using Amazon.DynamoDBv2;
+using ToDoList.Services;
 using Amazon.DynamoDBv2.Model;
-using System.Threading.Tasks;
 
 namespace ToDoList.Controllers
 {
@@ -11,140 +10,52 @@ namespace ToDoList.Controllers
     [Route("api/[controller]")]
     public class ToDoController : ControllerBase
     {
-        private const string TableName = "ToDo";
 
-        private readonly IAmazonDynamoDB _amazonDynamoDb;
+        public static IAmazonDynamoDB _amazonDynamoDb;
 
-        public ToDoController(IAmazonDynamoDB amazonDynamoDb)
+        public ToDoController(IAmazonDynamoDB amazonDynamo)
         {
-            _amazonDynamoDb = amazonDynamoDb;
+            _amazonDynamoDb = amazonDynamo;
         }
+
+        public ToDoRepositry dynamo = new ToDoRepositry();
 
         [HttpGet]
         [Route("init")]
-        public async Task Initialise()
+        public void InitialiseAsync()
         {
-            var request = new ListTablesRequest
-            {
-                Limit = 10
-            };
-
-            var response = await _amazonDynamoDb.ListTablesAsync(request);
-
-            var results = response.TableNames;
-
-            if (!results.Contains(TableName))
-            {
-                var createRequest = new CreateTableRequest
-                {
-                    TableName = TableName,
-                    AttributeDefinitions = new List<AttributeDefinition>
-                    {
-                        new AttributeDefinition
-                        {
-                            AttributeName = "Id",
-                            AttributeType = "N"
-                        }
-                    },
-                    KeySchema = new List<KeySchemaElement>
-                    {
-                        new KeySchemaElement
-                        {
-                            AttributeName = "Id",
-                            KeyType = "HASH",
-                        }
-                    },
-                    ProvisionedThroughput = new ProvisionedThroughput
-                    {
-                        ReadCapacityUnits = 2,
-                        WriteCapacityUnits = 2
-                    }
-                };
-
-                await _amazonDynamoDb.CreateTableAsync(createRequest);
-            }
+            _ = dynamo.InitialiseAsync(_amazonDynamoDb);
         }
 
         [HttpGet("{id}")]
-        public async Task<GetItemResponse> GetSingle(int id)
+        public GetItemResponse GetSingle(int id)
         {
-            var request = new GetItemRequest
-            {
-                TableName = TableName,
-                Key = new Dictionary<string, AttributeValue> { { "Id", new AttributeValue { N = id.ToString() } } }
-            };
-
-            var response = await _amazonDynamoDb.GetItemAsync(request);
-
-            return response;
+            return dynamo.GetSingle(id, _amazonDynamoDb).Result;
         }
 
         [HttpPost]
-        public async Task Post([FromBody] ToDo input)
+        public PutItemResponse Post([FromBody] ToDo input)
         {
-            var request = new PutItemRequest
-            {
-                TableName = TableName,
-                Item = new Dictionary<string, AttributeValue>
-                {
-                    { "Id", new AttributeValue { N = input.Id.ToString() }},
-                    { "Title", new AttributeValue { S = input.Title }}
-                }
-            };
-
-            await _amazonDynamoDb.PutItemAsync(request);
+            return dynamo.Post(input, _amazonDynamoDb).Result;
         }
 
         [HttpPut("{id}")]
-        public void Put(int id, [FromBody] ToDo input)
+        public GetItemResponse Put(int id, [FromBody] ToDo input)
         {
-            var request = new UpdateItemRequest
-            {
-                TableName = TableName,
-                Key = new Dictionary<string, AttributeValue>() { { "Id", new AttributeValue { N = id.ToString() } } },
-                ExpressionAttributeNames = new Dictionary<string, string>()
-                {
-                    {"#A", "Title"},
-
-                },
-                ExpressionAttributeValues = new Dictionary<string, AttributeValue>()
-                {
-                    { ":title", new AttributeValue { S = input.Title }}
-                },
-
-
-                UpdateExpression = "SET #A = :title",
-            };
-            _amazonDynamoDb.UpdateItemAsync(request);
-
+            return dynamo.Put(id, input, _amazonDynamoDb).Result;
         }
 
         [HttpDelete("{id}")]
-        public async Task<IActionResult> Delete(int id)
+        public DeleteItemResponse Delete(int id)
         {
-            var request = new DeleteItemRequest
-            {
-                TableName = TableName,
-                Key = new Dictionary<string, AttributeValue> { { "Id", new AttributeValue { N = id.ToString() } } }
-            };
-
-            var response = await _amazonDynamoDb.DeleteItemAsync(request);
-
-            return StatusCode((int)response.HttpStatusCode);
+            return dynamo.Delete(id, _amazonDynamoDb).Result;
         }
 
         [HttpGet]
-        public async Task<ScanResponse> Get()
+        public ScanResponse Get()
         {
-            var request = new ScanRequest
-            {
-                TableName = TableName
-            };
-
-            var response = await _amazonDynamoDb.ScanAsync(request);
-
-
-            return response;
+            return dynamo.Get(_amazonDynamoDb).Result;
+            
         }
     }
 }
